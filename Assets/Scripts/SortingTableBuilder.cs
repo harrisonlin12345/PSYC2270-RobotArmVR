@@ -35,9 +35,11 @@ public class SortingTableBuilder : MonoBehaviour
 
     private void BuildTable()
     {
-        // Prevent duplicate tables.
+        // Remove any previously generated table.
         if (tableRoot != null)
+        {
             Destroy(tableRoot);
+        }
 
         tableRoot = new GameObject("SortingTable");
         tableRoot.transform.SetParent(transform, false);
@@ -63,7 +65,7 @@ public class SortingTableBuilder : MonoBehaviour
         CreateLeg(-legX, legZ);
         CreateLeg(legX, legZ);
 
-        // Top surface height.
+        // Calculate height of colored sections.
         float surfaceY =
             tableHeight +
             tabletopThickness / 2f +
@@ -78,9 +80,9 @@ public class SortingTableBuilder : MonoBehaviour
         float usableDepth =
             tableDepth - 2f * margin;
 
-        // --------------------------------
+        // ========================================
         // YELLOW COLOR ASSIGNER
-        // --------------------------------
+        // ========================================
 
         float assignerDepth =
             usableDepth / 2f - zoneGap / 2f;
@@ -103,16 +105,16 @@ public class SortingTableBuilder : MonoBehaviour
             assignerColor
         );
 
-        // Create invisible trigger above assigner.
+        // Add invisible assignment trigger.
         CreateAssignmentTrigger(
             assigner,
             usableWidth,
             assignerDepth
         );
 
-        // --------------------------------
-        // RED, BLUE, GREEN SORTING ZONES
-        // --------------------------------
+        // ========================================
+        // RED, BLUE, GREEN SORTING SECTIONS
+        // ========================================
 
         float sortingDepth =
             usableDepth / 2f - zoneGap / 2f;
@@ -126,7 +128,8 @@ public class SortingTableBuilder : MonoBehaviour
         float spacing =
             sortingWidth + zoneGap;
 
-        CreateCube(
+        // Red section.
+        GameObject redZone = CreateCube(
             "RedZone",
             new Vector3(
                 -spacing,
@@ -141,7 +144,8 @@ public class SortingTableBuilder : MonoBehaviour
             redColor
         );
 
-        CreateCube(
+        // Blue section.
+        GameObject blueZone = CreateCube(
             "BlueZone",
             new Vector3(
                 0f,
@@ -156,7 +160,8 @@ public class SortingTableBuilder : MonoBehaviour
             blueColor
         );
 
-        CreateCube(
+        // Green section.
+        GameObject greenZone = CreateCube(
             "GreenZone",
             new Vector3(
                 spacing,
@@ -171,10 +176,39 @@ public class SortingTableBuilder : MonoBehaviour
             greenColor
         );
 
+        // ========================================
+        // SORTING TRIGGERS
+        // ========================================
+
+        CreateSortingTrigger(
+            redZone,
+            sortingWidth,
+            sortingDepth,
+            ColoredBlock.BlockColor.Red
+        );
+
+        CreateSortingTrigger(
+            blueZone,
+            sortingWidth,
+            sortingDepth,
+            ColoredBlock.BlockColor.Blue
+        );
+
+        CreateSortingTrigger(
+            greenZone,
+            sortingWidth,
+            sortingDepth,
+            ColoredBlock.BlockColor.Green
+        );
+
         Debug.Log(
-            "Sorting table created with color assigner."
+            "Sorting table created successfully."
         );
     }
+
+    // ========================================
+    // COLOR ASSIGNMENT TRIGGER
+    // ========================================
 
     private void CreateAssignmentTrigger(
         GameObject assigner,
@@ -184,11 +218,9 @@ public class SortingTableBuilder : MonoBehaviour
         GameObject trigger =
             new GameObject("AssignmentTrigger");
 
-        // Parent to the table root rather than
-        // the thin assigner surface to avoid
-        // inherited nonuniform scaling.
         trigger.transform.SetParent(
-            tableRoot.transform, false
+            tableRoot.transform,
+            false
         );
 
         float surfaceTop =
@@ -216,17 +248,71 @@ public class SortingTableBuilder : MonoBehaviour
             depth
         );
 
-        // Attach the assignment behavior.
+        // Attach ColorAssigner script.
         ColorAssigner colorAssigner =
             trigger.AddComponent<ColorAssigner>();
 
+        // Only assignmentDelay is required.
+        // Colors are handled by ColoredBlock.cs.
         colorAssigner.assignmentDelay =
             assignmentDelay;
-
-        colorAssigner.redColor = redColor;
-        colorAssigner.blueColor = blueColor;
-        colorAssigner.greenColor = greenColor;
     }
+
+    // ========================================
+    // SORTING ZONE TRIGGERS
+    // ========================================
+
+    private void CreateSortingTrigger(
+        GameObject zone,
+        float width,
+        float depth,
+        ColoredBlock.BlockColor color)
+    {
+        GameObject trigger =
+            new GameObject(
+                zone.name + "Trigger"
+            );
+
+        trigger.transform.SetParent(
+            tableRoot.transform,
+            false
+        );
+
+        float surfaceTop =
+            zone.transform.localPosition.y +
+            zoneThickness / 2f;
+
+        trigger.transform.localPosition =
+            new Vector3(
+                zone.transform.localPosition.x,
+                surfaceTop + triggerHeight / 2f,
+                zone.transform.localPosition.z
+            );
+
+        trigger.transform.localScale =
+            Vector3.one;
+
+        BoxCollider collider =
+            trigger.AddComponent<BoxCollider>();
+
+        collider.isTrigger = true;
+
+        collider.size = new Vector3(
+            width,
+            triggerHeight,
+            depth
+        );
+
+        // Attach sorting behavior.
+        SortingZone sortingZone =
+            trigger.AddComponent<SortingZone>();
+
+        sortingZone.zoneColor = color;
+    }
+
+    // ========================================
+    // TABLE LEGS
+    // ========================================
 
     private void CreateLeg(float x, float z)
     {
@@ -246,6 +332,10 @@ public class SortingTableBuilder : MonoBehaviour
         );
     }
 
+    // ========================================
+    // CUBE CREATION
+    // ========================================
+
     private GameObject CreateCube(
         string objectName,
         Vector3 localPosition,
@@ -260,7 +350,8 @@ public class SortingTableBuilder : MonoBehaviour
         obj.name = objectName;
 
         obj.transform.SetParent(
-            tableRoot.transform, false
+            tableRoot.transform,
+            false
         );
 
         obj.transform.localPosition =
@@ -277,13 +368,14 @@ public class SortingTableBuilder : MonoBehaviour
         );
 
         if (shader == null)
+        {
             shader = Shader.Find("Standard");
+        }
 
         Material material =
             new Material(shader);
 
         material.color = color;
-
         renderer.material = material;
 
         return obj;

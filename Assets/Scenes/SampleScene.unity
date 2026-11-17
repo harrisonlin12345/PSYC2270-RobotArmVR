@@ -247,7 +247,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5241c56c9a6978d40935f713b5f9212f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RobotDeliveryController
-  motionMode: 1
+  motionMode: 3
   joints:
   - {fileID: 211963884}
   - {fileID: 1847552878}
@@ -617,6 +617,8 @@ GameObject:
   - component: {fileID: 1444131614}
   - component: {fileID: 1444131619}
   - component: {fileID: 1444131618}
+  - component: {fileID: 1444131621}
+  - component: {fileID: 1444131620}
   m_Layer: 0
   m_Name: WhiteBlock
   m_TagString: Untagged
@@ -873,6 +875,31 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1444131620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1444131613}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9bc23d8e740cb34280c0007634266a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BlockGrabHandler
+--- !u!114 &1444131621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1444131613}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e85e0b049932d1449a8c12672a4092e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ColoredBlock
+  assignedColor: 0
 --- !u!1001 &1575863175
 PrefabInstance:
   m_ObjectHideFlags: 0

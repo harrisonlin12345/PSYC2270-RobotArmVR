@@ -9,151 +9,99 @@ public class ColorAssigner : MonoBehaviour
     [Header("Assignment Settings")]
     public float assignmentDelay = 2f;
 
-    [Header("Colors")]
-    public Color redColor = Color.red;
-    public Color blueColor = Color.blue;
-    public Color greenColor = Color.green;
+    private readonly HashSet<ColoredBlock> overlapping =
+        new HashSet<ColoredBlock>();
 
-    private HashSet<GameObject> assignedBlocks =
-        new HashSet<GameObject>();
-
-    private Dictionary<GameObject, Coroutine> pendingBlocks =
-        new Dictionary<GameObject, Coroutine>();
-
-    private HashSet<GameObject> overlappingBlocks =
-        new HashSet<GameObject>();
+    private readonly Dictionary<ColoredBlock, Coroutine> pending =
+        new Dictionary<ColoredBlock, Coroutine>();
 
     private void OnTriggerEnter(Collider other)
     {
-        GameObject block = GetBlock(other);
+        ColoredBlock block =
+            other.GetComponentInParent<ColoredBlock>();
 
         if (block == null)
             return;
 
-        overlappingBlocks.Add(block);
+        overlapping.Add(block);
 
-        if (!assignedBlocks.Contains(block) &&
-            !pendingBlocks.ContainsKey(block))
+        if (block.assignedColor ==
+                ColoredBlock.BlockColor.Unassigned &&
+            !pending.ContainsKey(block))
         {
-            pendingBlocks[block] =
+            pending[block] =
                 StartCoroutine(AssignAfterDelay(block));
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        GameObject block = GetBlock(other);
+        ColoredBlock block =
+            other.GetComponentInParent<ColoredBlock>();
 
         if (block == null)
             return;
 
-        overlappingBlocks.Remove(block);
+        overlapping.Remove(block);
 
-        if (pendingBlocks.TryGetValue(
-            block, out Coroutine routine))
+        if (pending.TryGetValue(block, out Coroutine routine))
         {
             StopCoroutine(routine);
-            pendingBlocks.Remove(block);
+            pending.Remove(block);
         }
     }
 
-    private IEnumerator AssignAfterDelay(GameObject block)
+    private IEnumerator AssignAfterDelay(ColoredBlock block)
     {
-        // Wait for the participant to release the block.
         XRGrabInteractable grab =
             block.GetComponent<XRGrabInteractable>();
 
+        // Wait until the block is released.
         while (block != null &&
-               overlappingBlocks.Contains(block) &&
+               overlapping.Contains(block) &&
                grab != null &&
                grab.isSelected)
         {
             yield return null;
         }
 
-        if (block == null ||
-            !overlappingBlocks.Contains(block))
+        if (block == null || !overlapping.Contains(block))
         {
-            pendingBlocks.Remove(block);
+            pending.Remove(block);
             yield break;
         }
 
-        // Begin the two-second assignment timer.
-        yield return new WaitForSeconds(assignmentDelay);
+        // Require 2 continuous seconds on the assigner.
+        float elapsed = 0f;
 
-        if (block == null ||
-            !overlappingBlocks.Contains(block))
+        while (elapsed < assignmentDelay)
         {
-            pendingBlocks.Remove(block);
-            yield break;
+            if (block == null || !overlapping.Contains(block))
+            {
+                pending.Remove(block);
+                yield break;
+            }
+
+            if (grab != null && grab.isSelected)
+            {
+                // Reset timer while being held.
+                elapsed = 0f;
+            }
+            else
+            {
+                elapsed += Time.deltaTime;
+            }
+
+            yield return null;
         }
 
-        // Do not assign while the block is being held.
-        if (grab != null && grab.isSelected)
-        {
-            pendingBlocks.Remove(block);
-            yield break;
-        }
+        int random = Random.Range(0, 3);
 
-        int randomIndex = Random.Range(0, 3);
+        ColoredBlock.BlockColor color =
+            (ColoredBlock.BlockColor)(random + 1);
 
-        Color selectedColor;
+        block.AssignColor(color);
 
-        switch (randomIndex)
-        {
-            case 0:
-                selectedColor = redColor;
-                break;
-
-            case 1:
-                selectedColor = blueColor;
-                break;
-
-            default:
-                selectedColor = greenColor;
-                break;
-        }
-
-        Renderer blockRenderer =
-            block.GetComponentInChildren<Renderer>();
-
-        if (blockRenderer != null)
-        {
-            blockRenderer.material.color = selectedColor;
-        }
-
-        assignedBlocks.Add(block);
-        pendingBlocks.Remove(block);
-
-        Debug.Log(
-            "ColorAssigner: Assigned " +
-            GetColorName(randomIndex)
-        );
-    }
-
-    private string GetColorName(int index)
-    {
-        switch (index)
-        {
-            case 0:
-                return "RED";
-
-            case 1:
-                return "BLUE";
-
-            default:
-                return "GREEN";
-        }
-    }
-
-    private GameObject GetBlock(Collider other)
-    {
-        XRGrabInteractable grab =
-            other.GetComponentInParent<XRGrabInteractable>();
-
-        if (grab == null)
-            return null;
-
-        return grab.gameObject;
+        pending.Remove(block);
     }
 }
